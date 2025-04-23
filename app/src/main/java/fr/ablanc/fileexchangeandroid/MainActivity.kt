@@ -14,6 +14,9 @@ import androidx.compose.ui.input.key.Key.Companion.W
 import androidx.compose.ui.tooling.preview.Preview
 import fr.ablanc.fileexchangeandroid.data.WebSocketClient
 import fr.ablanc.fileexchangeandroid.presentation.theme.FileExchangeAndroidTheme
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.plugins.websocket.WebSockets
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
@@ -21,7 +24,11 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         GlobalScope.launch {
-            val webSocketClient = WebSocketClient()
+            val webSocketClient = WebSocketClient(
+                HttpClient(CIO) {
+                    install(WebSockets)
+                }
+            )
             webSocketClient.connect().collect {
                 println("co $it")
             }

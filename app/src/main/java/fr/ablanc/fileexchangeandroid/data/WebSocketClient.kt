@@ -12,16 +12,12 @@ import io.ktor.websocket.close
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.receiveAsFlow
 
-class WebSocketClient {
+class WebSocketClient(
+    private val client : HttpClient
+) {
 
     val ADDRESS_SERVER = "ws://10.0.2.2:8181"
-
     private var session: WebSocketSession? = null
-
-    val client = HttpClient(CIO) {
-        install(WebSockets)
-        install(Logging)
-    }
 
     suspend fun connect() = flow {
         try {
