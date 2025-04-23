@@ -1,6 +1,5 @@
-package fr.ablanc.fileexchangeandroid.ui.theme
+package fr.ablanc.fileexchangeandroid.presentation.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme

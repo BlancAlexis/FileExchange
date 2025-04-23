@@ -1,4 +1,4 @@
-package fr.ablanc.fileexchangeandroid.ui.theme
+package fr.ablanc.fileexchangeandroid.presentation.theme
 
 import androidx.compose.ui.graphics.Color
 

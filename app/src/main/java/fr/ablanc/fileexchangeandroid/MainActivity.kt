@@ -10,20 +10,40 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key.Companion.W
 import androidx.compose.ui.tooling.preview.Preview
-import fr.ablanc.fileexchangeandroid.ui.theme.FileExchangeAndroidTheme
+import fr.ablanc.fileexchangeandroid.data.WebSocketClient
+import fr.ablanc.fileexchangeandroid.presentation.theme.FileExchangeAndroidTheme
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        GlobalScope.launch {
+            val webSocketClient = WebSocketClient()
+            webSocketClient.connect().collect {
+                println("co $it")
+            }
+            webSocketClient.listen().collect {
+                println("listen $it")
+            }
+            webSocketClient.send("Hello")
+            webSocketClient.disconnect()
+        }
         setContent {
             FileExchangeAndroidTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                Greeting(name = "Android")
+            }
+            enableEdgeToEdge()
+            setContent {
+                FileExchangeAndroidTheme {
+                    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+                        Greeting(
+                            name = "Android",
+                            modifier = Modifier.padding(innerPadding)
+                        )
+                    }
                 }
             }
         }
