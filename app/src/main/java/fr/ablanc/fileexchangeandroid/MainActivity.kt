@@ -10,9 +10,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.key.Key.Companion.W
 import androidx.compose.ui.tooling.preview.Preview
-import fr.ablanc.fileexchangeandroid.data.WebSocketClient
+import fr.ablanc.fileexchangeandroid.data.SocketDataSourceImpl
+import fr.ablanc.fileexchangeandroid.domain.SocketRepositoryImpl
 import fr.ablanc.fileexchangeandroid.presentation.theme.FileExchangeAndroidTheme
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
@@ -24,11 +24,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         GlobalScope.launch {
-            val webSocketClient = WebSocketClient(
-                HttpClient(CIO) {
-                    install(WebSockets)
-                }
-            )
+            val webSocketClient = SocketRepositoryImpl(SocketDataSourceImpl(client = HttpClient(CIO) {
+                install(WebSockets) }, serverAddress = "ws://10.0.2.2:8181/"
+            ))
             webSocketClient.connect().collect {
                 println("co $it")
             }
