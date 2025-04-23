@@ -4,50 +4,41 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.navigation.compose.composable
+
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import fr.ablanc.fileexchangeandroid.data.SocketDataSourceImpl
-import fr.ablanc.fileexchangeandroid.domain.SocketRepositoryImpl
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.rememberNavController
+import fr.ablanc.fileexchangeandroid.presentation.HomeScreenRoot
 import fr.ablanc.fileexchangeandroid.presentation.theme.FileExchangeAndroidTheme
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.plugins.websocket.WebSockets
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        GlobalScope.launch {
-            val webSocketClient = SocketRepositoryImpl(SocketDataSourceImpl(client = HttpClient(CIO) {
-                install(WebSockets) }, serverAddress = "ws://10.0.2.2:8181/"
-            ))
-            webSocketClient.connect().collect {
-                println("co $it")
-            }
-            webSocketClient.listen().collect {
-                println("listen $it")
-            }
-            webSocketClient.send("Hello")
-            webSocketClient.disconnect()
-        }
         setContent {
             FileExchangeAndroidTheme {
-                Greeting(name = "Android")
-            }
-            enableEdgeToEdge()
-            setContent {
-                FileExchangeAndroidTheme {
+                enableEdgeToEdge()
+                setContent {
                     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                        Greeting(
-                            name = "Android",
-                            modifier = Modifier.padding(innerPadding)
-                        )
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(innerPadding),
+                            color = MaterialTheme.colorScheme.background
+                        ) {
+                            NavHost(
+                                navController = rememberNavController(), startDestination = "home"
+                            ) {
+                                composable("home") {
+                                    HomeScreenRoot()
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -55,18 +46,5 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    FileExchangeAndroidTheme {
-        Greeting("Android")
-    }
-}
+

@@ -12,7 +12,6 @@ class AppApplication : Application() {
         startKoin {
             androidContext(this@AppApplication)
             injectFeatures()
-
         }
     }
 }
