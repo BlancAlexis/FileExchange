@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.retry
 
 interface SocketRepository {
     suspend fun connect(): Flow<Ressource<Unit>>
-    suspend fun disconnect(): Ressource<Unit>
+    suspend fun disconnect(): Result<Unit>
     suspend fun listen(): Flow<Ressource<String>> // TODO voir pour un wrapper
     suspend fun send(message: String) : Ressource<Unit>
 }
@@ -32,12 +32,12 @@ class SocketRepositoryImpl(
         retries = 3, predicate = { (it is Exception).also { if (it) delay(5000) } }
     )
 
-    override suspend fun disconnect(): Ressource<Unit> {
+    override suspend fun disconnect(): Result<Unit> {
         return try {
             socketDataSource.disconnect()
-             Ressource.Success(Unit)
+            Result.success(Unit)
         } catch (e: Exception) {
-            Ressource.Error(exception = e, message = e.message)
+            Result.failure<Unit>(exception = e)
         }
     }
 
