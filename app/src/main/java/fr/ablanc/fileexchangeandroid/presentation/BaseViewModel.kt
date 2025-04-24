@@ -1,7 +1,7 @@
 package fr.ablanc.fileexchangeandroid.presentation
 
+import android.graphics.BitmapFactory
 import android.net.Uri
-import android.util.Log.e
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import fr.ablanc.fileexchangeandroid.domain.DecryptImageUseCase
@@ -21,11 +21,14 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.crypto.SecretKey
+import javax.crypto.spec.SecretKeySpec
 
 class BaseViewModel(
     private val repository: SocketRepository,
     private val encryptImageUseCase: EncryptImageUseCase,
-    private val decryptImageUseCase: DecryptImageUseCase
+    private val decryptImageUseCase: DecryptImageUseCase,
+    private val listenUseCase: ListenUseCase
 ) : ViewModel() {
 
     private val job: Job = socketConnection()
@@ -43,7 +46,7 @@ class BaseViewModel(
         viewModelScope.launch {
             delay(5000)
             val key = EncryptImageUseCase.generateAESKey()
-            socketSend(encryptImageUseCase.invoke(Uri.EMPTY, key))
+            socketSend(encryptImageUseCase.invoke(Uri.EMPTY, key), key)
 
         }
 
@@ -84,14 +87,29 @@ class BaseViewModel(
     }
 
     private suspend fun socketListen() {
-        repository.listen().collect {
-           
+        listenUseCase().collect {
+            when (it) {
+                is Ressource.Error<*> -> {
+                    println("listen : error emit ${it.message}")
+                }
+                is Ressource.Loading<*> -> {}
+                is Ressource.Success<*> -> {
+                    println("listen : success emit")
+                    when (it.data) {
+                        is FrameContent.Image -> _state.update { state ->
+                            state.copy(
+                                image = it.data.value
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 
-    private fun socketSend(data : ByteArray)  {
+    private fun socketSend(data: ByteArray, key1: SecretKey)  {
         viewModelScope.launch {
-            repository.send(data, "key")
+            repository.send(data, key1)
         }
 
     }
@@ -100,7 +118,10 @@ class BaseViewModel(
         when (action) {
             is OnScreenAction.DocumentSelected -> {
                 viewModelScope.launch {
-                    socketSend(encryptImageUseCase(action.uri, EncryptImageUseCase.generateAESKey()))
+                    val key = EncryptImageUseCase.generateAESKey()
+                    socketSend(
+                        encryptImageUseCase(action.uri, key), key
+                    )
                 }
                 println("bien recu")
                 viewModelScope.launch {
@@ -123,17 +144,27 @@ class ListenUseCase(
     private val decryptImageUseCase: DecryptImageUseCase
 ) {
 
-    var key : String?= ""
+    lateinit var key : SecretKey
     operator fun invoke(): Flow<Ressource<FrameContent>> = flow {
         emit(Ressource.Loading())
         try {
             repository.listen().collect { frame ->
+println("listen usecase")
                 when (frame) {
-                    is Frame.Binary -> {} //emit(Ressource.Success(FrameContent.Binary(decryptImageUseCase.invoke(frame.data, key ?: throw Exception("no key") ))))// fonction savoir type puis decode
+                    is Frame.Binary -> {
+                        if(!this@ListenUseCase::key.isInitialized){
+                           key = SecretKeySpec(frame.data, "AES")
+                        }
+                        else{
+                            val bitesDecripted =  decryptImageUseCase.invoke(frame.data, key ?: throw Exception("no key") )
+                            val byteArray = BitmapFactory.decodeByteArray(bitesDecripted, 0, bitesDecripted.size)
+                            emit(Ressource.Success(FrameContent.Image(BitmapFactory.decodeByteArray(bitesDecripted, 0, bitesDecripted.size)))) }// fonction savoir type puis decode
+                        }
+
                     is Frame.Close -> {}
                     is Frame.Ping -> {}
                     is Frame.Pong -> {}
-                    is Frame.Text -> key = frame.readText()
+                    is Frame.Text -> {}
                 }
             }
         } catch (e: Exception) {

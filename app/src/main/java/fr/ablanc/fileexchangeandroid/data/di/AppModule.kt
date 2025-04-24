@@ -8,6 +8,7 @@ import fr.ablanc.fileexchangeandroid.domain.FileReader
 import fr.ablanc.fileexchangeandroid.domain.SocketRepository
 import fr.ablanc.fileexchangeandroid.domain.SocketRepositoryImpl
 import fr.ablanc.fileexchangeandroid.presentation.BaseViewModel
+import fr.ablanc.fileexchangeandroid.presentation.ListenUseCase
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.logging.Logging
@@ -38,11 +39,13 @@ val appModule = module {
             install(WebSockets)
         }
     }
+
     single { FileReader(androidContext()) }
     single { EncryptImageUseCase(get()) }
     single { DecryptImageUseCase() }
     single<SocketDataSource> { SocketDataSourceImpl(get(), SERVER_ADDRESS) }
     single<SocketRepository> { SocketRepositoryImpl(get()) }
+    single { ListenUseCase(get(), get()) }
     viewModelOf(::BaseViewModel)
 
 }

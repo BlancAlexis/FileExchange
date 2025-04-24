@@ -15,7 +15,7 @@ interface SocketDataSource {
     suspend fun connect()
     suspend fun disconnect()
     suspend fun listen(): Flow<Frame>
-    suspend fun send(data: ByteArray, key: String)
+    suspend fun send(data: ByteArray, key: ByteArray)
 }
 
 class SocketDataSourceImpl(
@@ -45,9 +45,9 @@ class SocketDataSourceImpl(
         }
     }
 
-    override suspend fun send(data: ByteArray, key: String) {
+    override suspend fun send(data: ByteArray, key: ByteArray) {
         session?.outgoing?.trySend(
-            Frame.Text(key)
+            Frame.Binary(true,key)
         )?.onSuccess {
             println("Key sent")
         }?.onFailure {

@@ -10,8 +10,7 @@ class EncryptImageUseCase(
 ) {
 
     operator fun invoke(uri: Uri, key: SecretKey): ByteArray {
-        //val simageBytes = fileReader.readBytes(uri)
-        val imageBytes = "eee".encodeToByteArray()
+        val imageBytes = fileReader.readBytes(uri)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, key)
 
