@@ -21,8 +21,6 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.crypto.SecretKey
-import javax.crypto.spec.SecretKeySpec
 
 class BaseViewModel(
     private val repository: SocketRepository,
