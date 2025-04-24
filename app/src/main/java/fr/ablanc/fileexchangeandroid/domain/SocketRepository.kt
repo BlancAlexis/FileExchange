@@ -3,18 +3,16 @@ package fr.ablanc.fileexchangeandroid.domain
 import fr.ablanc.fileexchangeandroid.data.SocketDataSource
 import fr.ablanc.fileexchangeandroid.domain.util.Ressource
 import io.ktor.websocket.Frame
-import io.ktor.websocket.readText
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.retry
 
 interface SocketRepository {
     suspend fun connect(): Flow<Ressource<Unit>>
     suspend fun disconnect(): Result<Unit>
-    suspend fun listen(): Flow<Ressource<String>> // TODO voir pour un wrapper
-    suspend fun send(message: String) : Ressource<Unit>
+    suspend fun listen(): Flow<Frame>  // TODO voir pour un wrapper
+    suspend fun send(data: ByteArray, key: String) : Ressource<Unit>
 }
 
 class SocketRepositoryImpl(
@@ -41,23 +39,21 @@ class SocketRepositoryImpl(
         }
     }
 
-    override suspend fun listen(): Flow<Ressource<String>> = flow {
-        socketDataSource.listen().catch { emit(Ressource.Error(it as Exception?)) }
-            .collect { value ->
-                if (value is Frame.Text) {
-                    emit(Ressource.Success(value.readText()))
-                } else {
-                    emit(Ressource.Error(message = "Unknown"))
-                }
-            }
+    override suspend fun listen(): Flow<Frame> {
+            return socketDataSource.listen()
     }
 
-    override suspend fun send(message: String): Ressource<Unit> {
+
+    override suspend fun send(data: ByteArray, key: String): Ressource<Unit> {
         return try {
-            socketDataSource.send(message)
+            socketDataSource.send(data,key)
             Ressource.Success(Unit)
         } catch (e: Exception) {
             Ressource.Error(exception = e, message = e.message)
         }
     }
+}
+sealed class FrameContent {
+    data class Image(val value: String) : FrameContent()
+    data class PDF(val value: ByteArray) : FrameContent()
 }

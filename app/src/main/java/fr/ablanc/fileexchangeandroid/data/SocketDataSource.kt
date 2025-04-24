@@ -5,6 +5,8 @@ import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.websocket.Frame
 import io.ktor.websocket.WebSocketSession
 import io.ktor.websocket.close
+import kotlinx.coroutines.channels.onFailure
+import kotlinx.coroutines.channels.onSuccess
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -13,7 +15,7 @@ interface SocketDataSource {
     suspend fun connect()
     suspend fun disconnect()
     suspend fun listen(): Flow<Frame>
-    suspend fun send(message: String)
+    suspend fun send(data: ByteArray, key: String)
 }
 
 class SocketDataSourceImpl(
@@ -43,13 +45,23 @@ class SocketDataSourceImpl(
         }
     }
 
-    override suspend fun send(message: String) {
-        try {
-            session?.outgoing?.send(Frame.Text(message))
-        } catch (e: Exception) {
-            throw e
+    override suspend fun send(data: ByteArray, key: String) {
+        session?.outgoing?.trySend(
+            Frame.Text(key)
+        )?.onSuccess {
+            println("Key sent")
+        }?.onFailure {
+            println(it?.message)
+            println("Fail key")
         }
-
+        session?.outgoing?.trySend(
+            Frame.Binary(true, data)
+        )?.onSuccess {
+            println("Frame sent")
+        }?.onFailure {
+            println(it?.message)
+            println("Fail sent")
+        }
     }
 
 }
