@@ -4,11 +4,11 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -31,14 +30,19 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.Flow
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -50,7 +54,24 @@ fun HomeScreenRoot(
 }
 
 @Composable
-private fun HomeScreen(state: BaseState, onAction: (onScreenAction) -> Unit = {}) {
+private fun HomeScreen(state: BaseState, onAction: (OnScreenAction) -> Unit = {}) {
+    var showDialogDocumentPicker by remember { mutableStateOf(false) }
+    if (showDialogDocumentPicker) {
+        Dialog(
+            properties = DialogProperties(
+                dismissOnBackPress = true,
+                dismissOnClickOutside = false
+            ),
+            onDismissRequest = { showDialogDocumentPicker = false }
+        ) {
+            Card {
+                MediaPickerRoot(onDocumentSelected = {
+                    onAction(OnScreenAction.DocumentSelected(it))
+                })
+            }
+        }
+    }
+
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
@@ -84,7 +105,9 @@ private fun HomeScreen(state: BaseState, onAction: (onScreenAction) -> Unit = {}
                 shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(Color.White), modifier = Modifier.wrapContentSize()
             ) {
                 IconButton(
-                    onClick = { }, modifier = Modifier.size(200.dp)
+                    onClick = {
+                        showDialogDocumentPicker = true
+                    }, modifier = Modifier.size(200.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Add,
@@ -98,12 +121,7 @@ private fun HomeScreen(state: BaseState, onAction: (onScreenAction) -> Unit = {}
         Row(
             modifier = Modifier.fillMaxWidth(),
         ) {
-            MediaPickerRoot(
-                onDocumentSelected = {
-                    println("mediaroot: $it")
-                    onAction(onScreenAction.Connect(it))
-                }
-            )
+            AlertDownloadDialog()
         }
     }
 }
@@ -127,12 +145,12 @@ fun AlertDownloadDialog() {
     )
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun MediaPickerRoot(    onDocumentSelected: (Uri) -> Unit = {}
+fun MediaPickerRoot(
+    onDocumentSelected: (Uri) -> Unit = {}
 ){
-    Column (modifier = Modifier.fillMaxWidth()
-        .fillMaxHeight()
-        .padding(16.dp)){
+    FlowRow(modifier = Modifier.padding(16.dp)){
         PickImage(onDocumentSelected = {
             println("mediaPickerR: $it")
             onDocumentSelected(it)
@@ -152,7 +170,6 @@ fun MediaPickerRoot(    onDocumentSelected: (Uri) -> Unit = {}
 @Composable
 fun PickImage(
     onDocumentSelected: (Uri) -> Unit = {}
-
 ){
     val result = remember { mutableStateOf<Uri?>(null) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) {
