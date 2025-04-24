@@ -21,6 +21,8 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import javax.crypto.SecretKey
+import javax.crypto.spec.SecretKeySpec
 
 class BaseViewModel(
     private val repository: SocketRepository,
@@ -40,16 +42,16 @@ class BaseViewModel(
         _state.update { it.copy(serverConnected = state) }
     }
 
-    init {
+ /*   init {
         viewModelScope.launch {
             delay(5000)
             val key = EncryptImageUseCase.generateAESKey()
             socketSend(encryptImageUseCase.invoke(Uri.EMPTY, key), key)
 
         }
+ }
+*/
 
-
-    }
     private suspend fun socketConnect() {
         if (this.job.isActive == true) {
             socketDisconnection()
