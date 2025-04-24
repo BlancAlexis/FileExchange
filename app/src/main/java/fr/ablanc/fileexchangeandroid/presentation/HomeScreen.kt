@@ -1,17 +1,16 @@
 package fr.ablanc.fileexchangeandroid.presentation
 
-import androidx.compose.foundation.Image
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -44,7 +43,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import kotlinx.coroutines.flow.Flow
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -52,7 +50,7 @@ fun HomeScreenRoot(
 ) {
     val baseViewModel: BaseViewModel = koinViewModel<BaseViewModel>()
     val state = baseViewModel.state.collectAsStateWithLifecycle()
-    HomeScreen(state.value, onAction =  baseViewModel::onAction )
+    HomeScreen(state.value, onAction = baseViewModel::onAction)
 }
 
 @Composable
@@ -111,7 +109,9 @@ private fun HomeScreen(state: BaseState, onAction: (OnScreenAction) -> Unit = {}
         ) {
 
             Card(
-                shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(Color.White), modifier = Modifier.wrapContentSize()
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(Color.White),
+                modifier = Modifier.wrapContentSize()
             ) {
                 IconButton(
                     onClick = {
@@ -138,7 +138,9 @@ private fun HomeScreen(state: BaseState, onAction: (OnScreenAction) -> Unit = {}
 @Composable
 fun AlertDownloadDialog() {
     ListItem(
-        modifier = Modifier.padding(8.dp).border(1.dp, Color.Black, RoundedCornerShape(16.dp)),
+        modifier = Modifier
+            .padding(8.dp)
+            .border(1.dp, Color.Black, RoundedCornerShape(16.dp)),
         headlineContent = { Text(text = "Download") },
         overlineContent = { Text(text = "Download Alert") },
         trailingContent = {
@@ -158,8 +160,8 @@ fun AlertDownloadDialog() {
 @Composable
 fun MediaPickerRoot(
     onDocumentSelected: (Uri) -> Unit = {}
-){
-    FlowRow(modifier = Modifier.padding(16.dp)){
+) {
+    FlowRow(modifier = Modifier.padding(16.dp)) {
         PickImage(onDocumentSelected = {
             println("mediaPickerR: $it")
             onDocumentSelected(it)
@@ -179,7 +181,7 @@ fun MediaPickerRoot(
 @Composable
 fun PickImage(
     onDocumentSelected: (Uri) -> Unit = {}
-){
+) {
     val result = remember { mutableStateOf<Uri?>(null) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) {
         result.value = it
@@ -193,34 +195,35 @@ fun PickImage(
         }) {
             Text(text = "Select Image")
         }
-result.value?.let { image ->
-    onDocumentSelected(image)
-}
-     /*   result.value?.let { image ->
-            //Use Coil to display the selected image
-            val painter = rememberAsyncImagePainter(
-                ImageRequest
-                    .Builder(LocalContext.current)
-                    .data(data = image)
-                    .build()
-            )
-            Image(
-                painter = painter,
-                contentDescription = null,
-                modifier = Modifier.size(150.dp, 150.dp)
-                    .padding(16.dp)
-            )
-        }*/
+        result.value?.let { image ->
+            onDocumentSelected(image)
+        }
+        /*   result.value?.let { image ->
+               //Use Coil to display the selected image
+               val painter = rememberAsyncImagePainter(
+                   ImageRequest
+                       .Builder(LocalContext.current)
+                       .data(data = image)
+                       .build()
+               )
+               Image(
+                   painter = painter,
+                   contentDescription = null,
+                   modifier = Modifier.size(150.dp, 150.dp)
+                       .padding(16.dp)
+               )
+           }*/
     }
 }
 
 
 @Composable
-fun PickMultipleImage(){
+fun PickMultipleImage() {
     val result = remember { mutableStateOf<List<Uri?>?>(null) }
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia()) {
-        result.value = it
-    }
+    val launcher =
+        rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia()) {
+            result.value = it
+        }
 
     Column {
         Button(onClick = {
@@ -253,7 +256,7 @@ fun PickMultipleImage(){
 }
 
 @Composable
-fun PickVideo(onDocumentSelected: (Uri) -> Unit = {}){
+fun PickVideo(onDocumentSelected: (Uri) -> Unit = {}) {
     val result = remember { mutableStateOf<Uri?>(null) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) {
         result.value = it
@@ -277,7 +280,7 @@ fun PickVideo(onDocumentSelected: (Uri) -> Unit = {}){
 @Composable
 fun PickDocument(
     onDocumentSelected: (Uri) -> Unit = {}
-){
+) {
     val context = LocalContext.current
     val result = remember { mutableStateOf<Uri?>(null) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) {

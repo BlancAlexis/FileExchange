@@ -12,10 +12,10 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.receiveAsFlow
 
 interface SocketDataSource {
-    suspend fun connect()
+    suspend fun connect(encoded: ByteArray)
     suspend fun disconnect()
     suspend fun listen(): Flow<Frame>
-    suspend fun send(data: ByteArray, key: ByteArray)
+    suspend fun send(data: ByteArray)
 }
 
 class SocketDataSourceImpl(
@@ -25,9 +25,10 @@ class SocketDataSourceImpl(
 
     private var session: WebSocketSession? = null
 
-    override suspend fun connect() {
+    override suspend fun connect(key: ByteArray) {
         try {
             session = client.webSocketSession(serverAddress)
+            session?.outgoing?.send(Frame.Binary(true, key))
         } catch (e: Exception) {
             throw e
         }
@@ -45,15 +46,7 @@ class SocketDataSourceImpl(
         }
     }
 
-    override suspend fun send(data: ByteArray, key: ByteArray) {
-        session?.outgoing?.trySend(
-            Frame.Binary(true,key)
-        )?.onSuccess {
-            println("Key sent")
-        }?.onFailure {
-            println(it?.message)
-            println("Fail key")
-        }
+    override suspend fun send(data: ByteArray) {
         session?.outgoing?.trySend(
             Frame.Binary(true, data)
         )?.onSuccess {

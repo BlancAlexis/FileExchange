@@ -6,13 +6,14 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 
 class EncryptImageUseCase(
-    private val fileReader: FileReader
+    private val fileReader: FileReader,
+    private val cryptoManager: CryptoManager
 ) {
 
-    operator fun invoke(uri: Uri, key: SecretKey): ByteArray {
+    operator fun invoke(uri: Uri): ByteArray {
         val imageBytes = fileReader.readBytes(uri)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.ENCRYPT_MODE, key)
+        cipher.init(Cipher.ENCRYPT_MODE, cryptoManager.key)
 
         val iv = cipher.iv
         val encryptedBytes = cipher.doFinal(imageBytes)
@@ -20,11 +21,4 @@ class EncryptImageUseCase(
         return iv + encryptedBytes
     }
 
-    companion object {
-        fun generateAESKey(): SecretKey {
-            val keyGen = KeyGenerator.getInstance("AES")
-            keyGen.init(256)
-            return keyGen.generateKey()
-        }
-    }
 }

@@ -8,22 +8,21 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.retry
-import javax.crypto.SecretKey
 
 interface SocketRepository {
     suspend fun connect(): Flow<Ressource<Unit>>
     suspend fun disconnect(): Result<Unit>
-    suspend fun listen(): Flow<Frame>  // TODO voir pour un wrapper
-    suspend fun send(data: ByteArray, key: SecretKey) : Ressource<Unit>
+    suspend fun listen(): Flow<Frame>
+    suspend fun send(data: ByteArray): Ressource<Unit>
 }
 
 class SocketRepositoryImpl(
-    private val socketDataSource: SocketDataSource
+    private val socketDataSource: SocketDataSource, private val cryptoManager: CryptoManager
 ) : SocketRepository {
     override suspend fun connect(): Flow<Ressource<Unit>> = flow {
         try {
             emit(Ressource.Loading())
-            socketDataSource.connect()
+            socketDataSource.connect(cryptoManager.key.encoded)
             emit(Ressource.Success(Unit))
         } catch (e: Exception) {
             emit(Ressource.Error(exception = e, message = e.message))
@@ -42,19 +41,20 @@ class SocketRepositoryImpl(
     }
 
     override suspend fun listen(): Flow<Frame> {
-            return socketDataSource.listen()
+        return socketDataSource.listen()
     }
 
 
-    override suspend fun send(data: ByteArray, key: SecretKey): Ressource<Unit> {
+    override suspend fun send(data: ByteArray): Ressource<Unit> {
         return try {
-            socketDataSource.send(data,key.encoded)
+            socketDataSource.send(data)
             Ressource.Success(Unit)
         } catch (e: Exception) {
             Ressource.Error(exception = e, message = e.message)
         }
     }
 }
+
 sealed class FrameContent {
     data class Image(val value: Bitmap) : FrameContent()
     data class PDF(val value: ByteArray) : FrameContent()
