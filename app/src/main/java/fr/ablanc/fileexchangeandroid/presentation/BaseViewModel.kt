@@ -29,4 +29,8 @@ class BaseViewModel(
         _state.update { it.copy(serverConnected = state) }
     }
 
+    fun onAction(action: onScreenAction) {
+        when (action) {
+        }
+    }
 }
