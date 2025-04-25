@@ -4,5 +4,6 @@ import android.graphics.Bitmap
 
 data class BaseState(
     val serverConnected: Boolean = false,
+    val onDocumentLoading: Boolean = false,
     val image: Bitmap? = null
 )

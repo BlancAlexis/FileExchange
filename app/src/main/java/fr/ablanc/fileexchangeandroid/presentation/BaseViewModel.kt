@@ -1,8 +1,10 @@
 package fr.ablanc.fileexchangeandroid.presentation
 
+import android.graphics.Bitmap
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import fr.ablanc.fileexchangeandroid.domain.CacheManager
 import fr.ablanc.fileexchangeandroid.domain.EncryptImageUseCase
 import fr.ablanc.fileexchangeandroid.domain.FrameContent
 import fr.ablanc.fileexchangeandroid.domain.ListenUseCase
@@ -15,11 +17,13 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.ByteArrayOutputStream
 
 class BaseViewModel(
     private val repository: SocketRepository,
     private val encryptImageUseCase: EncryptImageUseCase,
     private val listenUseCase: ListenUseCase,
+    private val cacheManager: CacheManager
 ) : ViewModel() {
 
     private val job: Job = socketConnection()
@@ -33,7 +37,7 @@ class BaseViewModel(
         _state.update { it.copy(serverConnected = state) }
     }
 
-    private suspend fun socketConnect() {
+    internal fun socketConnect() {
         if (this.job.isActive == true) {
             socketDisconnection()
         } else {
@@ -58,11 +62,13 @@ class BaseViewModel(
 
     }
 
-    private suspend fun socketDisconnection() {
-        repository.disconnect().onSuccess {
-            job.cancel()
-        }.onFailure {
+    private fun socketDisconnection() {
+        viewModelScope.launch {
+            repository.disconnect().onSuccess {
+                job.cancel()
+            }.onFailure {
 
+            }
         }
     }
 
@@ -73,7 +79,13 @@ class BaseViewModel(
                     println("listen : error emit ${it.message}")
                 }
 
-                is Ressource.Loading<*> -> {}
+                is Ressource.Loading<*> ->
+                    _state.update { state ->
+                        state.copy(
+                            onDocumentLoading = true
+                        )
+                    }
+
                 is Ressource.Success<*> -> {
                     println("listen : success emit")
                     when (it.data) {
@@ -105,10 +117,22 @@ class BaseViewModel(
                 }
             }
 
+            OnScreenAction.endLoading -> _state.update { it.copy(onDocumentLoading = false) }
+            OnScreenAction.saveDocument -> cacheManager.createCachedFile(
+                _state.value.image!!.toByteArray()
+            )
         }
     }
 }
 
+fun Bitmap.toByteArray(): ByteArray {
+    val stream = ByteArrayOutputStream()
+    this.compress(Bitmap.CompressFormat.PNG, 100, stream)
+    return stream.toByteArray()
+}
+
 sealed interface OnScreenAction {
     data class DocumentSelected(val uri: Uri) : OnScreenAction
+    object endLoading : OnScreenAction
+    object saveDocument : OnScreenAction
 }
