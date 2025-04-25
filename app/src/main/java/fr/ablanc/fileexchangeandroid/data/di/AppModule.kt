@@ -46,7 +46,7 @@ val appModule = module {
     single { FileReader(androidContext()) }
     single { EncryptImageUseCase(get(), get()) }
     single { DecryptImageUseCase() }
-    single<SocketDataSource> { SocketDataSourceImpl(get(), SERVER_ADDRESS) }
+    single<SocketDataSource> { SocketDataSourceImpl(get(), SERVER_ADDRESS, get()) }
     single<SocketRepository> { SocketRepositoryImpl(get(), get()) }
     single { ConvertIntoFileUseCase() }
     single { ListenUseCase(get(), get(), get()) }

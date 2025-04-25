@@ -2,8 +2,6 @@ package fr.ablanc.fileexchangeandroid.domain
 
 import android.net.Uri
 import javax.crypto.Cipher
-import javax.crypto.KeyGenerator
-import javax.crypto.SecretKey
 
 class EncryptImageUseCase(
     private val fileReader: FileReader,

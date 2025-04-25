@@ -20,7 +20,8 @@ interface SocketDataSource {
 
 class SocketDataSourceImpl(
     private val client: HttpClient,
-    private val serverAddress: String
+    private val serverAddress: String,
+    private val cryptoManager: CryptoManager
 ) : SocketDataSource {
 
     private var session: WebSocketSession? = null
@@ -47,14 +48,21 @@ class SocketDataSourceImpl(
     }
 
     override suspend fun send(data: ByteArray) {
+        val keyPayload = withPrefix("KEY:", cryptoManager.key.encoded)
+        val dataPayload = withPrefix("DATA", data)
+        session?.outgoing?.trySend(Frame.Binary(true, keyPayload))
         session?.outgoing?.trySend(
-            Frame.Binary(true, data)
+            Frame.Binary(true, dataPayload)
         )?.onSuccess {
             println("Frame sent")
         }?.onFailure {
             println(it?.message)
             println("Fail sent")
         }
+    }
+
+    private fun withPrefix(prefix: String, data: ByteArray): ByteArray {
+        return prefix.toByteArray(Charsets.UTF_8) + data
     }
 
 }

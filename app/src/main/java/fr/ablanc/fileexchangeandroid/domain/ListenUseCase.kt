@@ -17,19 +17,22 @@ class ListenUseCase(
     operator fun invoke(): Flow<Ressource<FrameContent>> = flow {
         try {
             repository.listen().collect { frame ->
-                emit(Ressource.Loading())
                 when (frame) {
                     is Frame.Binary -> {
-                        if (!this@ListenUseCase::key.isInitialized) {
-                            key = SecretKeySpec(frame.data, "AES")
-                        } else {
-                            val bitesDecrypted = decryptImageUseCase.invoke(
-                                frame.data, key ?: throw Exception("no key")
-                            )
-                            val result = convertIntoFileUseCase.invoke(bitesDecrypted)
-                            emit(
-                                Ressource.Success(result)
-                            )
+                        val prefix = String(frame.data.sliceArray(0 until 4))
+                        when(prefix){
+                            "KEY:" -> {
+                                key = SecretKeySpec(frame.data.sliceArray(4 until frame.data.size), "AES")
+                            }
+                            "DATA" -> {
+                                emit(Ressource.Loading())
+                                val bitesDecrypted = decryptImageUseCase.invoke(frame.data.sliceArray(4 until frame.data.size), key)
+                                val result = convertIntoFileUseCase.invoke(bitesDecrypted)
+                                emit(Ressource.Success(result))
+                            }
+                            else -> {
+
+                            }
                         }
                     }
 

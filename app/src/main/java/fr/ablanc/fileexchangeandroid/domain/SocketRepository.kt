@@ -28,8 +28,9 @@ class SocketRepositoryImpl(
             emit(Ressource.Error(exception = e, message = e.message))
         }
     }.retry(
-        retries = 3, predicate = { (it is Exception).also { if (it) delay(5000) } }
+        retries = 1000, predicate = { (it is Exception).also { if (it) delay(5000) } }
     )
+    //TODO
 
     override suspend fun disconnect(): Result<Unit> {
         return try {
