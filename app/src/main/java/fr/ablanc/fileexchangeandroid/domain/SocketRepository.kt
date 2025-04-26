@@ -2,35 +2,36 @@ package fr.ablanc.fileexchangeandroid.domain
 
 import android.graphics.Bitmap
 import fr.ablanc.fileexchangeandroid.data.SocketDataSource
-import fr.ablanc.fileexchangeandroid.domain.util.Ressource
+import fr.ablanc.fileexchangeandroid.domain.util.Resources
 import io.ktor.websocket.Frame
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.retry
+import kotlinx.coroutines.flow.retryWhen
 
 interface SocketRepository {
-    suspend fun connect(): Flow<Ressource<Unit>>
+    fun connect(): Flow<Resources<Unit>>
     suspend fun disconnect(): Result<Unit>
-    suspend fun listen(): Flow<Frame>
-    suspend fun send(data: ByteArray): Ressource<Unit>
+    fun listen(): Flow<Frame>
+    suspend fun send(data: ByteArray): Resources<Unit>
 }
 
 class SocketRepositoryImpl(
     private val socketDataSource: SocketDataSource, private val cryptoManager: CryptoManager
 ) : SocketRepository {
-    override suspend fun connect(): Flow<Ressource<Unit>> = flow {
-        try {
-            emit(Ressource.Loading())
-            socketDataSource.connect(cryptoManager.key.encoded)
-            emit(Ressource.Success(Unit))
-        } catch (e: Exception) {
-            emit(Ressource.Error(exception = e, message = e.message))
+    override fun connect(): Flow<Resources<Unit>> = flow {
+        emit(Resources.Loading())
+        socketDataSource.connect(cryptoManager.key.encoded)
+        emit(Resources.Success(Unit))
+    }.retryWhen { cause, attempt ->
+        if (cause is Exception && attempt < 1000) {
+            delay(5000)
+            true
+        } else {
+            false
         }
-    }.retry(
-        retries = 1000, predicate = { (it is Exception).also { if (it) delay(5000) } }
-    )
-    //TODO
+    }
+
 
     override suspend fun disconnect(): Result<Unit> {
         return try {
@@ -41,17 +42,17 @@ class SocketRepositoryImpl(
         }
     }
 
-    override suspend fun listen(): Flow<Frame> {
+    override fun listen(): Flow<Frame> {
         return socketDataSource.listen()
     }
 
 
-    override suspend fun send(data: ByteArray): Ressource<Unit> {
+    override suspend fun send(data: ByteArray): Resources<Unit> {
         return try {
             socketDataSource.send(data)
-            Ressource.Success(Unit)
+            Resources.Success(Unit)
         } catch (e: Exception) {
-            Ressource.Error(exception = e, message = e.message)
+            Resources.Error(exception = e, message = e.message)
         }
     }
 }

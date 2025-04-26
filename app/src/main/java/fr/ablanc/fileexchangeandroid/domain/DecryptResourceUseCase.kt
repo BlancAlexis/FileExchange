@@ -4,7 +4,7 @@ import javax.crypto.Cipher
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-class DecryptImageUseCase {
+class DecryptResourceUseCase {
     operator fun invoke(encryptedData: ByteArray, key: SecretKey): ByteArray {
         val iv = encryptedData.sliceArray(0 until 12)
         val cipherText = encryptedData.sliceArray(12 until encryptedData.size)

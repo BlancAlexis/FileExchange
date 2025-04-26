@@ -1,10 +1,12 @@
 package fr.ablanc.fileexchangeandroid.data
 
+import fr.ablanc.fileexchangeandroid.domain.CryptoManager
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.websocket.Frame
 import io.ktor.websocket.WebSocketSession
 import io.ktor.websocket.close
+import kotlinx.coroutines.channels.ChannelResult
 import kotlinx.coroutines.channels.onFailure
 import kotlinx.coroutines.channels.onSuccess
 import kotlinx.coroutines.flow.Flow
@@ -14,7 +16,7 @@ import kotlinx.coroutines.flow.receiveAsFlow
 interface SocketDataSource {
     suspend fun connect(encoded: ByteArray)
     suspend fun disconnect()
-    suspend fun listen(): Flow<Frame>
+    fun listen(): Flow<Frame>
     suspend fun send(data: ByteArray)
 }
 
@@ -41,20 +43,30 @@ class SocketDataSourceImpl(
         session = null
     }
 
-    override suspend fun listen() = flow<Frame> {
+    override fun listen() = flow<Frame> {
         session?.incoming?.receiveAsFlow()?.collect {
             emit(it)
         }
     }
 
-    override suspend fun send(data: ByteArray) {
-        val keyPayload = withPrefix("KEY:", cryptoManager.key.encoded)
-        val dataPayload = withPrefix("DATA", data)
-        session?.outgoing?.trySend(Frame.Binary(true, keyPayload))
-        session?.outgoing?.trySend(
-            Frame.Binary(true, dataPayload)
-        )?.onSuccess {
-            println("Frame sent")
+    suspend fun sendKey(): ChannelResult<Unit>? {
+        return session?.outgoing?.trySend(
+            Frame.Binary(
+                true, withPrefix("KEY:", cryptoManager.key.encoded)
+            )
+        )
+    }
+
+    override suspend fun send(dataPayload: ByteArray) {
+        sendKey()?.onSuccess {
+            session?.outgoing?.trySend(
+                Frame.Binary(true, withPrefix("DATA", dataPayload))
+            )?.onSuccess {
+                println("Frame sent")
+            }?.onFailure {
+                println(it?.message)
+                println("Fail sent")
+            }
         }?.onFailure {
             println(it?.message)
             println("Fail sent")

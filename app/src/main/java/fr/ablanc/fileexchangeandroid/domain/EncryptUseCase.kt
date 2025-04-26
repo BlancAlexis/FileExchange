@@ -3,7 +3,7 @@ package fr.ablanc.fileexchangeandroid.domain
 import android.net.Uri
 import javax.crypto.Cipher
 
-class EncryptImageUseCase(
+class EncryptUseCase(
     private val fileReader: FileReader,
     private val cryptoManager: CryptoManager
 ) {
