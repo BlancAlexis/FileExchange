@@ -1,9 +1,10 @@
 package fr.ablanc.fileexchangeandroid.presentation
 
-import android.graphics.Bitmap
+import fr.ablanc.fileexchangeandroid.domain.UIFile
 
 data class BaseState(
-    val serverConnected: Boolean = false,
-    val onDocumentLoading: Boolean = false,
-    val image: Bitmap? = null
+    val isServerConnected: Boolean = false,
+    val isLoadingResource: Boolean = false,
+    val uiFile: UIFile? = null,
+    val persistedResourceNames: List<String>? = null
 )
