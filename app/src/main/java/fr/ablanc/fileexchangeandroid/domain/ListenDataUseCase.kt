@@ -1,6 +1,10 @@
 package fr.ablanc.fileexchangeandroid.domain
 
+import fr.ablanc.fileexchangeandroid.data.WebDataType
 import fr.ablanc.fileexchangeandroid.domain.util.Resources
+import fr.ablanc.fileexchangeandroid.domain.util.Resources.Error
+import fr.ablanc.fileexchangeandroid.domain.util.Resources.Loading
+import fr.ablanc.fileexchangeandroid.domain.util.Resources.Success
 import io.ktor.websocket.Frame
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -19,36 +23,34 @@ class ListenDataUseCase(
             repository.listen().collect { frame ->
                 when (frame) {
                     is Frame.Binary -> {
-                        val prefix = String(frame.data.sliceArray(0 until 4))
+                        val prefix = WebDataType.fromType(String(frame.data.sliceArray(0 until 4)))
                         when (prefix) {
-                            "KEY:" -> {
+                            WebDataType.KEY -> {
                                 key = SecretKeySpec(
                                     frame.data.sliceArray(4 until frame.data.size), "AES"
                                 )
                             }
 
-                            "DATA" -> {
-                                emit(Resources.Loading())
+                            WebDataType.DATA -> {
+                                emit(Loading())
                                 val bitesDecrypted = decryptResourceUseCase.invoke(
                                     frame.data.sliceArray(4 until frame.data.size), key
                                 )
                                 val result = convertIntoFileUseCase.invoke(bitesDecrypted)
-                                emit(Resources.Success(result))
+                                emit(Success(result))
                             }
 
-                            else -> {
-                                emit(Resources.Error(message = "Unknown prefix"))
-                            }
+                            null -> TODO()
                         }
                     }
 
                     else -> {
-                        emit(Resources.Error(message = "Unknown Frame"))
+                        emit(Error(message = "Unknown Frame"))
                     }
                 }
             }
         } catch (e: Exception) {
-            emit(Resources.Error(message = e.message))
+            emit(Error(message = e.message))
         }
     }
 }

@@ -17,7 +17,7 @@ interface SocketDataSource {
     suspend fun connect(encoded: ByteArray)
     suspend fun disconnect()
     fun listen(): Flow<Frame>
-    suspend fun send(data: ByteArray)
+    suspend fun sendData(data: ByteArray)
 }
 
 class SocketDataSourceImpl(
@@ -38,9 +38,14 @@ class SocketDataSourceImpl(
     }
 
     override suspend fun disconnect() {
-        session?.close()
-        client.close()
-        session = null
+        try {
+            session?.close()
+            client.close()
+            session = null
+        } catch (e: Exception) {
+            throw e
+        }
+
     }
 
     override fun listen() = flow<Frame> {
@@ -52,29 +57,46 @@ class SocketDataSourceImpl(
     suspend fun sendKey(): ChannelResult<Unit>? {
         return session?.outgoing?.trySend(
             Frame.Binary(
-                true, withPrefix("KEY:", cryptoManager.key.encoded)
+                true, withPrefix(WebDataType.KEY.type, cryptoManager.key.encoded)
             )
         )
     }
 
-    override suspend fun send(dataPayload: ByteArray) {
+    override suspend fun sendData(dataPayload: ByteArray) {
         sendKey()?.onSuccess {
             session?.outgoing?.trySend(
-                Frame.Binary(true, withPrefix("DATA", dataPayload))
+                Frame.Binary(true, withPrefix(WebDataType.DATA.type, dataPayload))
             )?.onSuccess {
                 println("Frame sent")
             }?.onFailure {
-                println(it?.message)
-                println("Fail sent")
+                it?.let {
+                    throw it
+                }
             }
         }?.onFailure {
-            println(it?.message)
-            println("Fail sent")
+            it?.let {
+                throw it
+            }
+
         }
     }
 
+    /**
+     * Add prefix to the byte array on type of data
+     */
     private fun withPrefix(prefix: String, data: ByteArray): ByteArray {
         return prefix.toByteArray(Charsets.UTF_8) + data
+    }
+
+}
+
+
+enum class WebDataType(val type: String){
+    KEY("KEY:"), DATA("DATA");
+
+    companion object {
+        fun fromType(type: String): WebDataType? =
+            WebDataType.entries.firstOrNull { it.type == type }
     }
 
 }

@@ -12,12 +12,14 @@ import fr.ablanc.fileexchangeandroid.domain.SocketRepository
 import fr.ablanc.fileexchangeandroid.domain.Type
 import fr.ablanc.fileexchangeandroid.domain.UIFile
 import fr.ablanc.fileexchangeandroid.domain.util.Resources
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 
 class BaseViewModel(
@@ -37,10 +39,14 @@ class BaseViewModel(
 
     internal fun socketConnect() {
         socketJob?.cancel()
-        socketJob = viewModelScope.launch {
+        socketJob = viewModelScope.launch(Dispatchers.IO) {
             socketRepository.connect().collect { resource ->
                 when (resource) {
-                    is Resources.Error<*> -> setServerConnected(false)
+                    is Resources.Error<*> -> {
+                        setServerConnected(false)
+                        println("co : error emit ${resource.message}")
+                    }
+
                     is Resources.Loading<*> -> println("co : loading")
                     is Resources.Success<*> -> {
                         setServerConnected(true)
@@ -92,10 +98,8 @@ class BaseViewModel(
         cacheManager.clearCache()
     }
 
-    private fun socketSend(data: ByteArray) {
-        viewModelScope.launch {
-            socketRepository.send(data)
-        }
+    private suspend fun socketSend(data: ByteArray) {
+        socketRepository.send(data)
 
     }
 
@@ -103,11 +107,12 @@ class BaseViewModel(
         _state.update { it.copy(isServerConnected = state) }
     }
 
+
     fun onAction(action: OnScreenAction) {
         when (action) {
             is OnScreenAction.OnDocumentSelected -> {
                 _state.update { it.copy(isLoadingResource = false) }
-                viewModelScope.launch {
+                viewModelScope.launch(Dispatchers.IO) {
                     socketSend(
                         encryptUseCase(action.uri)
                     )
