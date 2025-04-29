@@ -1,5 +1,6 @@
 package fr.ablanc.fileexchangeandroid.presentation.component
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -33,6 +34,7 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,6 +44,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -58,10 +61,18 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun HomeScreenRoot(
 ) {
+    val context = LocalContext.current
     val baseViewModel: BaseViewModel = koinViewModel<BaseViewModel>()
     val state = baseViewModel.state.collectAsStateWithLifecycle()
     HomeScreen(state.value, onAction = baseViewModel::onAction)
     val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(state.value.toastMessage) {
+        val message = state.value.toastMessage
+        if (!message.isNullOrBlank()) {
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+            baseViewModel.onAction(OnScreenAction.ClearToastMessage)
+        }
+    }
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -86,34 +97,45 @@ fun HomeScreenRoot(
         onDispose {
             lifecycleOwner.lifecycle.removeObserver(observer)
         }
+
+
     }
 }
 
 @Composable
 private fun HomeScreen(state: BaseState, onAction: (OnScreenAction) -> Unit = {}) {
     var showDialogDocumentPicker by remember { mutableStateOf(false) }
-    if (!state.persistedResourceNames.isNullOrEmpty()) {
-        Dialog(onDismissRequest = { onAction(OnScreenAction.OnCloseDocumentLoading) }) {
+    if (state.showCachedFilesDialog) {
+        Dialog(onDismissRequest = { onAction(OnScreenAction.OnCloseCachedFilesDialog) }) {
             Card(modifier = Modifier.padding(16.dp)) {
                 Column {
-                    state.persistedResourceNames.forEach { name ->
-                        Text(
-                            text = name,
-                            modifier = Modifier
-                                .padding(8.dp)
-                                .clickable {
-                                    onAction(OnScreenAction.OnCachedFileClicked(name))
-                                }
-                        )
+                    if (!state.persistedResourceNames.isNullOrEmpty()) {
+                        state.persistedResourceNames.forEach { name ->
+                            Text(
+                                text = name,
+                                modifier = Modifier
+                                    .padding(8.dp)
+                                    .clickable {
+                                        onAction(OnScreenAction.OnCachedFileClicked(name))
+                                    }
+                            )
+
+                        }
+                    } else {
+                        Text("Aucun fichier n'est disponible")
                     }
                 }
             }
         }
     }
 
+
+
+
     if (state.showDocumentDialog) {
         Dialog(
-            onDismissRequest = { onAction(OnScreenAction.OnCloseDocumentVisualization) }, properties = DialogProperties(
+            onDismissRequest = { onAction(OnScreenAction.OnCloseDocumentVisualization) },
+            properties = DialogProperties(
                 dismissOnBackPress = true, dismissOnClickOutside = false
             )
         ) {
@@ -165,7 +187,7 @@ private fun HomeScreen(state: BaseState, onAction: (OnScreenAction) -> Unit = {}
             .fillMaxSize()
             .padding(vertical = 16.dp)
     ) {
-         Row(
+        Row(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxWidth()
@@ -262,9 +284,12 @@ private fun DocumentMenu(
                     tint = Color.White
                 )
             }
-            menu(
+            DocumentSubMenu(
                 expanded = expanded,
-                onClose = { expanded = false },
+                onClose = {
+                    expanded = false
+                    onAction(OnScreenAction.OnCloseDocumentVisualization)
+                },
                 onAction = onAction,
                 showSave = !state.isViewingCachedFile
             )
@@ -275,7 +300,7 @@ private fun DocumentMenu(
 }
 
 @Composable
-fun menu(
+fun DocumentSubMenu(
     expanded: Boolean,
     onClose: () -> Unit = {},
     onAction: (OnScreenAction) -> Unit = {},
@@ -295,6 +320,7 @@ fun menu(
         })
     }
 }
+
 @Composable
 fun AlertDownloadDialog(
     onButtonClick: () -> Unit = {},
