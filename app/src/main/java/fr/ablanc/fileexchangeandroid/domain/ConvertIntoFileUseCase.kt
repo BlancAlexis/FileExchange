@@ -22,7 +22,8 @@ class ConvertIntoFileUseCase() {
 
             Type.PDF -> FrameContent.PDF(
                 byteArray
-                )
+            )
+
             else -> {
                 throw IllegalArgumentException("Unknown type $name")
             }

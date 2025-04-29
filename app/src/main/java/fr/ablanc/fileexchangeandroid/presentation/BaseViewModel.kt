@@ -44,6 +44,7 @@ class BaseViewModel(
                 when (resource) {
                     is Resources.Error<*> -> {
                         setServerConnected(false)
+                        setToastMessage("Erreur lors de la connexion au serveur")
                         println("co : error emit ${resource.message}")
                     }
 
@@ -67,6 +68,7 @@ class BaseViewModel(
         listenDataUseCase().collect {
             when (it) {
                 is Resources.Error<*> -> {
+                    setToastMessage("Erreur lors de la réception du document")
                     println("listen : error emit ${it.message}")
                 }
 
@@ -107,6 +109,9 @@ class BaseViewModel(
         _state.update { it.copy(isServerConnected = state) }
     }
 
+    private fun setToastMessage(message: String?) {
+        _state.update { it.copy(toastMessage = message) }
+    }
 
     fun onAction(action: OnScreenAction) {
         when (action) {
@@ -126,57 +131,94 @@ class BaseViewModel(
                 )
             }
 
-            OnScreenAction.OnTriggerSaveDocumentButton -> viewModelScope.launch(Dispatchers.IO) {
-                if (_state.value.uiFile != null) {
-                    cacheManager.createCachedFile(_state.value.uiFile)
+            OnScreenAction.OnTriggerSaveDocumentButton -> {
+                val fileToSave = _state.value.uiFile
+                viewModelScope.launch(Dispatchers.IO) {
+                    if (fileToSave != null) {
+                        cacheManager.createCachedFile(fileToSave).onSuccess {
+                            setToastMessage("Document sauvegardé")
+                        }.onFailure {
+                            println("error : ${it.message}")
+                            setToastMessage("Erreur lors de la sauvegarde du document")
+                        }
 
+                    }
                 }
             }
 
             OnScreenAction.OnTriggerViewSaveButton -> {
                 viewModelScope.launch(Dispatchers.IO) {
-                    val persistedFiles =
-                        cacheManager.getCachedFiles().map { it.name ?: "no name: ${it.type}" }
-                    withContext(Dispatchers.Main) {
-                        _state.update {
-                            it.copy(
-                                persistedResourceNames = persistedFiles
-                            )
+                    cacheManager.getCachedFiles().onSuccess {
+                        val persistedFiles = it.map { it.name ?: "no name: ${it.type}" }
+                        withContext(Dispatchers.Main) {
+                            _state.update {
+                                it.copy(
+                                    showCachedFilesDialog = true,
+                                    persistedResourceNames = persistedFiles
+                                )
 
+                            }
                         }
+                    }.onFailure {
+                        setToastMessage("Erreur lors de la récupération des documents")
+                        println("error : ${it.message}")
                     }
+
 
                 }
 
             }
 
             OnScreenAction.OnTriggerDeleteDocumentButton -> viewModelScope.launch(Dispatchers.IO) {
-                if (_state.value.uiFile != null) {
-                    cacheManager.deleteCachedFile(_state.value.uiFile)
+                val fileToDelete = _state.value.uiFile
+                if (fileToDelete != null) {
+                    cacheManager.deleteCachedFile(fileToDelete).onSuccess {
+                        setToastMessage("Document supprimé")
+                    }.onFailure {
+                        setToastMessage("Erreur lors de la suppression du document")
+                    }
                 }
             }
 
             OnScreenAction.OnCloseDocumentVisualization -> _state.update {
                 it.copy(
-                    uiFile = null, showDocumentDialog = false
+                    uiFile = null,
+                    showDocumentDialog = false,
+                    persistedResourceNames = emptyList(),
+                    showCachedFilesDialog = false
                 )
             }
 
             is OnScreenAction.OnCachedFileClicked -> viewModelScope.launch(Dispatchers.IO) {
-                val cachedFile =
-                    cacheManager.getCachedFiles().firstOrNull { it.name == action.name }
-                if (cachedFile != null) {
-                    withContext(Dispatchers.Main) {
-                        _state.update {
-                            it.copy(
-                                uiFile = cachedFile,
-                                showDocumentDialog = true,
-                                isViewingCachedFile = true
-                            )
+                cacheManager.getCachedFiles().onSuccess {
+                    if (it.isNotEmpty()) {
+                        val cachedFile = it.firstOrNull { it.name == action.name }
+                        if (cachedFile != null) {
+                            withContext(Dispatchers.Main) {
+                                _state.update {
+                                    it.copy(
+                                        uiFile = cachedFile,
+                                        showDocumentDialog = true,
+                                        isViewingCachedFile = true
+                                    )
+                                }
+                            }
                         }
                     }
+                }.onFailure {
+                    setToastMessage("Erreur lors de la récupération des documents")
+                    println("error : ${it.message}")
                 }
             }
+
+            OnScreenAction.OnCloseCachedFilesDialog -> _state.update {
+                it.copy(
+                    persistedResourceNames = emptyList(), showCachedFilesDialog = false
+                )
+
+            }
+
+            OnScreenAction.ClearToastMessage -> setToastMessage(null)
         }
     }
 
@@ -194,6 +236,8 @@ sealed interface OnScreenAction {
     object OnCloseDocumentVisualization : OnScreenAction
     object OnTriggerSaveDocumentButton : OnScreenAction
     object OnTriggerViewSaveButton : OnScreenAction
+    object ClearToastMessage : OnScreenAction
     object OnTriggerDeleteDocumentButton : OnScreenAction
+    object OnCloseCachedFilesDialog : OnScreenAction
     data class OnCachedFileClicked(val name: String) : OnScreenAction
 }

@@ -1,6 +1,7 @@
 package fr.ablanc.fileexchangeandroid.data
 
 import fr.ablanc.fileexchangeandroid.domain.CryptoManager
+import fr.ablanc.fileexchangeandroid.domain.WebDataType
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.websocket.Frame
@@ -91,12 +92,3 @@ class SocketDataSourceImpl(
 }
 
 
-enum class WebDataType(val type: String){
-    KEY("KEY:"), DATA("DATA");
-
-    companion object {
-        fun fromType(type: String): WebDataType? =
-            WebDataType.entries.firstOrNull { it.type == type }
-    }
-
-}

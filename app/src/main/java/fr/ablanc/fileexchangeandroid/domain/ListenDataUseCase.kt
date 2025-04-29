@@ -1,6 +1,5 @@
 package fr.ablanc.fileexchangeandroid.domain
 
-import fr.ablanc.fileexchangeandroid.data.WebDataType
 import fr.ablanc.fileexchangeandroid.domain.util.Resources
 import fr.ablanc.fileexchangeandroid.domain.util.Resources.Error
 import fr.ablanc.fileexchangeandroid.domain.util.Resources.Loading
@@ -40,7 +39,9 @@ class ListenDataUseCase(
                                 emit(Success(result))
                             }
 
-                            null -> TODO()
+                            null -> {
+                                emit(Error(message = "Unknown prefix"))
+                            }
                         }
                     }
 

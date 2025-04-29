@@ -1,6 +1,5 @@
 package fr.ablanc.fileexchangeandroid.domain
 
-import android.graphics.Bitmap
 import fr.ablanc.fileexchangeandroid.data.SocketDataSource
 import fr.ablanc.fileexchangeandroid.domain.util.Resources
 import io.ktor.websocket.Frame
@@ -60,7 +59,3 @@ class SocketRepositoryImpl(
     }
 }
 
-sealed class FrameContent {
-    data class Image(val value: Bitmap) : FrameContent()
-    data class PDF(val value: ByteArray) : FrameContent()
-}
