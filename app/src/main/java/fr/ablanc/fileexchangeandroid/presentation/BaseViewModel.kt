@@ -67,7 +67,6 @@ class BaseViewModel(
         listenDataUseCase().collect {
             when (it) {
                 is Resources.Error<*> -> {
-                    setToastMessage("Erreur lors de la réception du document ${it.message}")
                 }
 
                 is Resources.Loading<*> -> _state.update { state ->
@@ -80,6 +79,7 @@ class BaseViewModel(
                     when (it.data) {
                         is FrameContent.Image -> _state.update { state ->
                             state.copy(
+                                isResourceLoaded = true,
                                 uiFile = UIFile(
                                     type = Type.PNG,
                                     bytes = it.data.value.toByteArray(),
@@ -124,7 +124,7 @@ class BaseViewModel(
 
             OnScreenAction.OnCloseDocumentLoading -> _state.update {
                 it.copy(
-                    isLoadingResource = false, showDocumentDialog = true
+                    isLoadingResource = false, showDocumentDialog = true, isResourceLoaded = false
                 )
             }
 

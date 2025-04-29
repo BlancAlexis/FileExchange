@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -251,6 +252,7 @@ private fun HomeScreen(state: BaseState, onAction: (OnScreenAction) -> Unit = {}
                     .padding(8.dp),
             ) {
                 AlertDownloadDialog(
+                    state = state,
                     onButtonClick = {
                         onAction(OnScreenAction.OnCloseDocumentLoading)
                     })
@@ -323,21 +325,26 @@ fun DocumentSubMenu(
 
 @Composable
 fun AlertDownloadDialog(
-    onButtonClick: () -> Unit = {},
+    onButtonClick: () -> Unit = {}, state: BaseState
 ) {
     ListItem(
         modifier = Modifier
             .clip(RoundedCornerShape(16.dp))
             .border(1.dp, Color.Black, RoundedCornerShape(16.dp)),
-        headlineContent = { Text(text = "Download") },
+        headlineContent = { Text(text = "File") },
         overlineContent = { Text(text = "Download Alert") },
         trailingContent = {
-            Button(onClick = { onButtonClick() }) {
+            Button(onClick = { onButtonClick() }, enabled = state.isResourceLoaded) {
                 Text(text = "Consulter")
             }
         },
         leadingContent = {
-            CircularProgressIndicator()
+            if (!state.isResourceLoaded){
+                CircularProgressIndicator()
+            }
+            else{
+             Icon(imageVector = Icons.Filled.Check, contentDescription = "done", tint = Color.Green)
+            }
         })
 }
 

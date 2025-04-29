@@ -10,5 +10,6 @@ data class BaseState(
     val showDocumentDialog: Boolean = false,
     val isViewingCachedFile: Boolean = false,
     val showCachedFilesDialog: Boolean = false,
-    val toastMessage: String? = null
+    val toastMessage: String? = null,
+    val isResourceLoaded: Boolean = false,
 )

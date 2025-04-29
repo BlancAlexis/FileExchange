@@ -1,6 +1,7 @@
 package fr.ablanc.fileexchangeandroid.presentation.component
 
 import android.net.Uri
+import android.util.Log.e
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -87,7 +88,9 @@ fun PickDocument(
     }
 
     Column {
-        Button(onClick = {
+        Button(
+            enabled = false, // Pas encore géré lors de la réception
+            onClick = {
             launcher.launch(arrayOf("application/pdf"))
         }) {
             Text(text = "Select Document")
