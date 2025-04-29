@@ -16,6 +16,8 @@ interface SocketRepository {
     suspend fun send(data: ByteArray): Resources<Unit>
 }
 
+const val CONNECTION_RETRY = 5
+
 class SocketRepositoryImpl(
     private val socketDataSource: SocketDataSource, private val cryptoManager: CryptoManager
 ) : SocketRepository {
@@ -24,7 +26,8 @@ class SocketRepositoryImpl(
         socketDataSource.connect(cryptoManager.key.encoded)
         emit(Resources.Success(Unit))
     }.retryWhen { cause, attempt ->
-        if (cause is Exception && attempt < 1000) {
+        if (cause is Exception && attempt < CONNECTION_RETRY) {
+            emit(Resources.Error(exception = cause, message = cause.message))
             delay(5000)
             true
         } else {
@@ -49,7 +52,7 @@ class SocketRepositoryImpl(
 
     override suspend fun send(data: ByteArray): Resources<Unit> {
         return try {
-            socketDataSource.send(data)
+            socketDataSource.sendData(data)
             Resources.Success(Unit)
         } catch (e: Exception) {
             Resources.Error(exception = e, message = e.message)
