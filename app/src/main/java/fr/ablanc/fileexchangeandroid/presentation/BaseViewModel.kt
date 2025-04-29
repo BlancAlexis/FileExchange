@@ -112,20 +112,69 @@ class BaseViewModel(
                         encryptUseCase(action.uri)
                     )
                 }
+
             }
 
-            OnScreenAction.OnCloseDocumentVisualisation -> _state.update { it.copy(isLoadingResource = false) }
-            OnScreenAction.OnTriggerSaveDocumentButton -> cacheManager.createCachedFile(
-                _state.value.uiFile ?: null
-            )
-
-            OnScreenAction.OnTriggerViewSaveButton -> _state.update {
+            OnScreenAction.OnCloseDocumentLoading -> _state.update {
                 it.copy(
-                    persistedResourceNames = cacheManager.getCachedFiles()
-                        .map { it.type.toString() })
+                    isLoadingResource = false, showDocumentDialog = true
+                )
+            }
+
+            OnScreenAction.OnTriggerSaveDocumentButton -> viewModelScope.launch(Dispatchers.IO) {
+                if (_state.value.uiFile != null) {
+                    cacheManager.createCachedFile(_state.value.uiFile)
+
+                }
+            }
+
+            OnScreenAction.OnTriggerViewSaveButton -> {
+                viewModelScope.launch(Dispatchers.IO) {
+                    val persistedFiles =
+                        cacheManager.getCachedFiles().map { it.name ?: "no name: ${it.type}" }
+                    withContext(Dispatchers.Main) {
+                        _state.update {
+                            it.copy(
+                                persistedResourceNames = persistedFiles
+                            )
+
+                        }
+                    }
+
+                }
+
+            }
+
+            OnScreenAction.OnTriggerDeleteDocumentButton -> viewModelScope.launch(Dispatchers.IO) {
+                if (_state.value.uiFile != null) {
+                    cacheManager.deleteCachedFile(_state.value.uiFile)
+                }
+            }
+
+            OnScreenAction.OnCloseDocumentVisualization -> _state.update {
+                it.copy(
+                    uiFile = null, showDocumentDialog = false
+                )
+            }
+
+            is OnScreenAction.OnCachedFileClicked -> viewModelScope.launch(Dispatchers.IO) {
+                val cachedFile =
+                    cacheManager.getCachedFiles().firstOrNull { it.name == action.name }
+                if (cachedFile != null) {
+                    withContext(Dispatchers.Main) {
+                        _state.update {
+                            it.copy(
+                                uiFile = cachedFile,
+                                showDocumentDialog = true,
+                                isViewingCachedFile = true
+                            )
+                        }
+                    }
+                }
             }
         }
     }
+
 }
 
 fun Bitmap.toByteArray(): ByteArray {
@@ -136,7 +185,10 @@ fun Bitmap.toByteArray(): ByteArray {
 
 sealed interface OnScreenAction {
     data class OnDocumentSelected(val uri: Uri) : OnScreenAction
-    object OnCloseDocumentVisualisation : OnScreenAction
+    object OnCloseDocumentLoading : OnScreenAction
+    object OnCloseDocumentVisualization : OnScreenAction
     object OnTriggerSaveDocumentButton : OnScreenAction
     object OnTriggerViewSaveButton : OnScreenAction
+    object OnTriggerDeleteDocumentButton : OnScreenAction
+    data class OnCachedFileClicked(val name: String) : OnScreenAction
 }

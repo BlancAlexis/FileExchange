@@ -2,6 +2,7 @@ package fr.ablanc.fileexchangeandroid.presentation.component
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,8 +12,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
@@ -92,15 +91,34 @@ fun HomeScreenRoot(
 
 @Composable
 private fun HomeScreen(state: BaseState, onAction: (OnScreenAction) -> Unit = {}) {
-    var showImageDialog by remember { mutableStateOf(false) }
     var showDialogDocumentPicker by remember { mutableStateOf(false) }
-    if (showImageDialog) {
+    if (!state.persistedResourceNames.isNullOrEmpty()) {
+        Dialog(onDismissRequest = { onAction(OnScreenAction.OnCloseDocumentLoading) }) {
+            Card(modifier = Modifier.padding(16.dp)) {
+                Column {
+                    state.persistedResourceNames.forEach { name ->
+                        Text(
+                            text = name,
+                            modifier = Modifier
+                                .padding(8.dp)
+                                .clickable {
+                                    onAction(OnScreenAction.OnCachedFileClicked(name))
+                                }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    if (state.showDocumentDialog) {
         Dialog(
-            onDismissRequest = { showImageDialog = false }, properties = DialogProperties(
+            onDismissRequest = { onAction(OnScreenAction.OnCloseDocumentVisualization) }, properties = DialogProperties(
                 dismissOnBackPress = true, dismissOnClickOutside = false
             )
         ) {
             DocumentMenu(
+                state = state,
                 onAction = onAction
             ) {
                 when (state.uiFile?.content) {
@@ -130,7 +148,8 @@ private fun HomeScreen(state: BaseState, onAction: (OnScreenAction) -> Unit = {}
             properties = DialogProperties(
                 dismissOnBackPress = true, dismissOnClickOutside = true
             ), onDismissRequest = {
-                onAction(OnScreenAction.OnCloseDocumentVisualisation)
+                showDialogDocumentPicker = false
+                onAction(OnScreenAction.OnCloseDocumentLoading)
             }) {
             Card {
                 MediaPickerRoot(onDocumentSelected = {
@@ -146,14 +165,7 @@ private fun HomeScreen(state: BaseState, onAction: (OnScreenAction) -> Unit = {}
             .fillMaxSize()
             .padding(vertical = 16.dp)
     ) {
-        LazyRow {
-            items(state.persistedResourceNames ?: emptyList()) { it ->
-                Text(it)
-            }
-        }
-
-
-        Row(
+         Row(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxWidth()
@@ -168,7 +180,7 @@ private fun HomeScreen(state: BaseState, onAction: (OnScreenAction) -> Unit = {}
                 )
             ) {
                 Icon(
-                    imageVector = Icons.AutoMirrored.Filled.List, contentDescription = "Add"
+                    imageVector = Icons.AutoMirrored.Filled.List, contentDescription = "Add",
                 )
             }
             Switch(
@@ -196,6 +208,7 @@ private fun HomeScreen(state: BaseState, onAction: (OnScreenAction) -> Unit = {}
                 modifier = Modifier.wrapContentSize()
             ) {
                 IconButton(
+                    enabled = state.isServerConnected,
                     onClick = {
                         showDialogDocumentPicker = true
                     }, modifier = Modifier.size(200.dp)
@@ -217,10 +230,8 @@ private fun HomeScreen(state: BaseState, onAction: (OnScreenAction) -> Unit = {}
             ) {
                 AlertDownloadDialog(
                     onButtonClick = {
-                        showImageDialog = true
-                        onAction(OnScreenAction.OnCloseDocumentVisualisation)
-                    }
-                )
+                        onAction(OnScreenAction.OnCloseDocumentLoading)
+                    })
             }
         }
     }
@@ -228,7 +239,7 @@ private fun HomeScreen(state: BaseState, onAction: (OnScreenAction) -> Unit = {}
 
 @Composable
 private fun DocumentMenu(
-    onAction: (OnScreenAction) -> Unit = {}, content: @Composable () -> Unit = {},
+    onAction: (OnScreenAction) -> Unit = {}, state: BaseState, content: @Composable () -> Unit = {},
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -251,23 +262,39 @@ private fun DocumentMenu(
                     tint = Color.White
                 )
             }
+            menu(
+                expanded = expanded,
+                onClose = { expanded = false },
+                onAction = onAction,
+                showSave = !state.isViewingCachedFile
+            )
 
-            DropdownMenu(
-                expanded = expanded, onDismissRequest = { expanded = false }) {
-                DropdownMenuItem(text = { Text("Sauvegarder") }, onClick = {
-                    onAction(OnScreenAction.OnTriggerSaveDocumentButton)
-                    expanded = false
-
-                })
-                DropdownMenuItem(text = { Text("Supprimer") }, onClick = {
-                    expanded = false
-                })
-            }
         }
 
     }
 }
 
+@Composable
+fun menu(
+    expanded: Boolean,
+    onClose: () -> Unit = {},
+    onAction: (OnScreenAction) -> Unit = {},
+    showSave: Boolean = true,
+) {
+    DropdownMenu(
+        expanded = expanded, onDismissRequest = { onClose() }) {
+        if (showSave) {
+            DropdownMenuItem(text = { Text("Sauvegarder") }, onClick = {
+                onAction(OnScreenAction.OnTriggerSaveDocumentButton)
+                onClose()
+            })
+        }
+        DropdownMenuItem(text = { Text("Supprimer") }, onClick = {
+            onAction(OnScreenAction.OnTriggerDeleteDocumentButton)
+            onClose()
+        })
+    }
+}
 @Composable
 fun AlertDownloadDialog(
     onButtonClick: () -> Unit = {},

@@ -20,12 +20,9 @@ class ConvertIntoFileUseCase() {
                 )
             )
 
-            Type.PDF -> FrameContent.Image(
-                BitmapFactory.decodeByteArray(
-                    byteArray, 0, byteArray.size
+            Type.PDF -> FrameContent.PDF(
+                byteArray
                 )
-            )
-
             else -> {
                 throw IllegalArgumentException("Unknown type $name")
             }
